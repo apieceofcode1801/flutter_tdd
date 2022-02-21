@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_tdd/features/number_trivia/presentation/bloc/number_trivia_bloc.dart';
+import 'package:flutter_tdd/features/number_trivia/presentation/controller/number_trivia_controller.dart';
+import 'package:flutter_tdd/features/number_trivia/presentation/controller/number_trivia_state.dart';
 import 'package:flutter_tdd/features/number_trivia/presentation/widgets/widgets.dart';
 import 'package:flutter_tdd/injection_container.dart';
+import 'package:get/get.dart';
 
 class NumberTriviaPage extends StatelessWidget {
   const NumberTriviaPage({Key? key}) : super(key: key);
@@ -13,73 +14,59 @@ class NumberTriviaPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Number Trivia'),
       ),
-      body: SingleChildScrollView(child: buildBody(context)),
+      body: SingleChildScrollView(
+          child: GetBuilder<NumberTriviaController>(
+        init: getIt<NumberTriviaController>(),
+        builder: (controller) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                children: <Widget>[
+                  const SizedBox(height: 10),
+                  _topHalf(controller),
+                  const SizedBox(height: 20),
+                  _triviaControls(context, controller),
+                  // Bottom half
+                ],
+              ),
+            ),
+          );
+        },
+      )),
     );
   }
 
-  BlocProvider<NumberTriviaBloc> buildBody(BuildContext context) {
-    return BlocProvider<NumberTriviaBloc>(
-      create: (_) => getIt<NumberTriviaBloc>(),
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            children: <Widget>[
-              const SizedBox(height: 10),
-              // Top half
-              BlocBuilder<NumberTriviaBloc, NumberTriviaState>(
-                  builder: (context, state) {
-                if (state is Empty) {
-                  return const MessageDisplay(message: 'Start searching');
-                } else if (state is Error) {
-                  return MessageDisplay(message: state.message);
-                } else if (state is Loading) {
-                  return const LoadingWidget();
-                } else if (state is Loaded) {
-                  return TriviaDisplay(numberTrivia: state.trivia);
-                }
-                return Container();
-              }),
-              const SizedBox(height: 20),
-              const TriviaControls(),
-              // Bottom half
-            ],
-          ),
-        ),
-      ),
-    );
+  Widget _topHalf(NumberTriviaController controller) {
+    final state = controller.state;
+    if (state is Empty) {
+      return const MessageDisplay(message: 'Start searching');
+    } else if (state is Error) {
+      return MessageDisplay(message: state.message);
+    } else if (state is Loading) {
+      return const LoadingWidget();
+    } else if (state is Loaded) {
+      return TriviaDisplay(numberTrivia: state.trivia);
+    }
+    return Container();
   }
-}
 
-class TriviaControls extends StatefulWidget {
-  const TriviaControls({
-    Key? key,
-  }) : super(key: key);
-
-  @override
-  _TriviaControlsState createState() => _TriviaControlsState();
-}
-
-class _TriviaControlsState extends State<TriviaControls> {
-  final controller = TextEditingController();
-  String inputStr = '';
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _triviaControls(
+      BuildContext context, NumberTriviaController controller) {
     return Column(
       children: <Widget>[
         TextField(
-          controller: controller,
+          controller: controller.textController,
           keyboardType: TextInputType.number,
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
             hintText: 'Input a number',
           ),
           onChanged: (value) {
-            inputStr = value;
+            controller.inputStr = value;
           },
           onSubmitted: (_) {
-            dispatchConcrete();
+            controller.loadNumber();
           },
         ),
         const SizedBox(height: 10),
@@ -87,34 +74,21 @@ class _TriviaControlsState extends State<TriviaControls> {
           children: <Widget>[
             Expanded(
               child: RaisedButton(
-                child: const Text('Search'),
-                color: Theme.of(context).accentColor,
-                textTheme: ButtonTextTheme.primary,
-                onPressed: dispatchConcrete,
-              ),
+                  child: const Text('Search'),
+                  color: Theme.of(context).accentColor,
+                  textTheme: ButtonTextTheme.primary,
+                  onPressed: controller.loadNumber),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: RaisedButton(
                 child: Text('Get random trivia'),
-                onPressed: dispatchRandom,
+                onPressed: controller.loadRandom,
               ),
             ),
           ],
         )
       ],
     );
-  }
-
-  void dispatchConcrete() {
-    // Clearing the TextField to prepare it for the next inputted number
-    controller.clear();
-    BlocProvider.of<NumberTriviaBloc>(context)
-        .add(GetTriviaForConcreteNumber(inputStr));
-  }
-
-  void dispatchRandom() {
-    controller.clear();
-    BlocProvider.of<NumberTriviaBloc>(context).add(GetTriviaForRandomNumber());
   }
 }

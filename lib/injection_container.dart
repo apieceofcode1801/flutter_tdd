@@ -7,7 +7,7 @@ import 'package:flutter_tdd/features/number_trivia/data/repositories/number_triv
 import 'package:flutter_tdd/features/number_trivia/domain/repositories/number_trivia_repository.dart';
 import 'package:flutter_tdd/features/number_trivia/domain/usecases/get_concrete_number_trivia.dart';
 import 'package:flutter_tdd/features/number_trivia/domain/usecases/get_random_number_trivia.dart';
-import 'package:flutter_tdd/features/number_trivia/presentation/bloc/number_trivia_bloc.dart';
+import 'package:flutter_tdd/features/number_trivia/presentation/controller/number_trivia_controller.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -16,7 +16,7 @@ final getIt = GetIt.instance;
 Future init() async {
   //! Features - Number Trivia
   // Bloc
-  getIt.registerFactory(() => NumberTriviaBloc(
+  getIt.registerFactory(() => NumberTriviaController(
       concrete: getIt(), random: getIt(), inputConverter: getIt()));
   // Use cases
   getIt.registerLazySingleton<GetConcreteNumberTrivia>(
@@ -32,17 +32,16 @@ Future init() async {
   // Data sources
   getIt.registerLazySingleton<NumberTriviaRemoteDataSource>(
       () => NumberTriviaRemoteDataSourceImpl(client: getIt()));
-  SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
   getIt.registerLazySingleton<NumberTriviaLocalDataSource>(
-      () => NumberTriviaLocalDataSourceImpl(sharedPreferences));
+      () => NumberTriviaLocalDataSourceImpl(getIt()));
   //! Core
   // Utils
   getIt.registerLazySingleton<InputConverter>(() => InputConverter());
   getIt.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(getIt()));
 
   //! External
-  // getIt.registerLazySingletonAsync<SharedPreferences>(
-  //     () => SharedPreferences.getInstance());
+  final sharedPreferences = await SharedPreferences.getInstance();
+  getIt.registerLazySingleton<SharedPreferences>(() => sharedPreferences);
   getIt.registerLazySingleton<http.Client>(() => http.Client());
   getIt.registerLazySingleton<Connectivity>(() => Connectivity());
 }

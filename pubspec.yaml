@@ -30,7 +30,7 @@ dependencies:
   flutter:
     sdk: flutter
   get_it: 
-  flutter_bloc:
+  get: 
   equatable:
   dartz:
   connectivity_plus:
